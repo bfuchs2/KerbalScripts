@@ -1,3 +1,6 @@
+// circularizes the current vessel using a node at time t
+// this is most efficient with t = ETA:PERIAPSIS + TIME:SECONDS, or ETA:APOAPSIS + TIME:SECONDS
+
 //parameter t. (global time in seconds)
 set burnpos to positionat(SHIP, t) - SHIP:BODY:POSITION.
 set burnalt to burnpos:mag - SHIP:BODY:RADIUS.

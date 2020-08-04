@@ -1,3 +1,5 @@
+// calculates some statistics about the next maneuver node, and sets them as global variables for use by other scripts
+
 //parameter burndv (m/s)
 //TODO calc dv and isp for each stage
 

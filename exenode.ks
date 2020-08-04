@@ -1,3 +1,5 @@
+// executes the next manuever node
+
 clearscreen.
 
 set node to NEXTNODE.

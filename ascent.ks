@@ -1,3 +1,5 @@
+// launches a ship into a westward suborbital trajectory with apoapsis = des_ap
+
 print "launch guidance engaged".
 
 /// des_ap is 100000

@@ -1,3 +1,6 @@
+// launches a ship into a westward suborbital trajectory with apoapsis = des_ap
+// this script makes some  
+
 print "ascent guidance engaged".
 
 //des_ap is 100000, vs is 10, ceil is 10000
