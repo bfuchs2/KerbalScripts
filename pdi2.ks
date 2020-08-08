@@ -15,7 +15,8 @@ until SHIP:VERTICALSPEED >= -0.01 and SHIP:VELOCITY:SURFACE:MAG < 1 {
 
     // copy in formulaes for theta and t
     set root to MATH:SQRT(accel*accel*(SHIP:GROUNDSPEED*SHIP:GROUNDSPEED + SHIP:VERTICALSPEED*SHIP:VERTICALSPEED) - g*g*SHIP:GROUNDSPEED*SHIP:GROUNDSPEED).
-    set theta to 2*arctan2(accel*SHIP:GROUNDSPEED + root, g*SHIP:GROUNDSPEED - accel*SHIP:VERTICALSPEED).
+    set theta to 2*arctan2(accel*SHIP:GROUNDSPEED + root, g*SHIP:GROUNDSPEED - accel*SHIP:VERTICALSPEED). // angle above the x axis to point the ship
+    // notes: theta will be in degrees. "x axis" is defined as the axis in the plae of the "up" vector and the ship's surface velocity vector with no vertical component, where the ship's x component of surface velocity is negative
     
     set t to (SHIP:GROUNDSPEED*root + accel*(SHIP:GROUNDSPEED*SHIP:GROUNDSPEED + SHIP:VERTICALSPEED*SHIP:VERTICALSPEED) - g*SHIP:GROUNDSPEED*SHIP:VERTICALSPEED)/(accel*root + accel*accel*SHIP:GROUNDSPEED + accel*g*SHIP:VERTICALSPEED - g*g*SHIP:GROUNDSPEED).
     
@@ -23,6 +24,16 @@ until SHIP:VERTICALSPEED >= -0.01 and SHIP:VELOCITY:SURFACE:MAG < 1 {
     
     set throt to desired_alt - SHIP:RADAR.
     lock throttle to min(max(desacc, 0), 1).
+    
+    // orient ship around angle theta
+    set yaxis to (SHIP:POSITION - SHIP:BODY:POSITION):NORMALIZED. // unit vector pointing straight away from the body's surface
+    set zaxis to VCRS(yaxis, SHIP:VELOCITY:SURFACE):NORMALIZED. // normal vector, up cross velocity
+    if zaxix:MAG = 0 {
+      lock steeting to UP.
+    } else {
+      set xaxis to VCRS(yaxis, zaxis):NORMALIZED. // unit vector in the x direction (against ground velocity)
+      lock steering to xaxis*cos(theta) + yaxis*sin(theta).
+    }
     
     print "g: " + g at (0, 21).
     print "a: " + accel at (0, 22).
