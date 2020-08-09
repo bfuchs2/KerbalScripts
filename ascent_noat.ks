@@ -10,7 +10,7 @@ until APOAPSIS > des_ap {
   set R to ALTITUDE + SHIP:BODY:RADIUS.
   set weight to SHIP:MASS * SHIP:BODY:MU / (R*R).
   set accel to (desv - SHIP:VERTICALSPEED)/vs.
-  set pitch to arcsin((SHIP:MASS*accel + weight)/SHIP:AVAILABLETHRUST).
+  set pitch to arcsin((SHIP:MASS*accel + weight)/max(0.1, SHIP:AVAILABLETHRUST)).
   
   set S to arcsin(weight/SHIP:AVAILABLETHRUST).
   //set pitch to S*(1 - VERTICALSPEED/desv). //old, more efficient but less safe method

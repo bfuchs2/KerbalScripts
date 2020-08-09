@@ -13,19 +13,19 @@ until SHIP:VERTICALSPEED >= -0.01 and SHIP:VELOCITY:SURFACE:MAG < 1 {
   set R to terrain + SHIP:BODY:RADIUS.
   set g to SHIP:BODY:MU / (R + p_altitude/3) ^ 2.
   set accel to max(0.0001, SHIP:AVAILABLETHRUST)/SHIP:MASS.
-
+  
   if accel > g {
 
     // copy in formulaes for theta and t
     set root to SQRT(accel*accel*(SHIP:GROUNDSPEED*SHIP:GROUNDSPEED + SHIP:VERTICALSPEED*SHIP:VERTICALSPEED) - g*g*SHIP:GROUNDSPEED*SHIP:GROUNDSPEED).
     
     // theta with gravity component
-    // set atany to -accel*SHIP:GROUNDSPEED + root.
-    // set atanx to -g*SHIP:GROUNDSPEED - accel*SHIP:VERTICALSPEED.
+    set atany to -accel*SHIP:GROUNDSPEED + root.
+    set atanx to -g*SHIP:GROUNDSPEED - accel*SHIP:VERTICALSPEED.
     
     // theta without gravity component
-    set atany to -accel*SHIP:GROUNDSPEED + SQRT(accel*accel*(SHIP:GROUNDSPEED*SHIP:GROUNDSPEED + SHIP:VERTICALSPEED*SHIP:VERTICALSPEED)).
-    set atanx to -accel*SHIP:VERTICALSPEED.
+    // set atany to -accel*SHIP:GROUNDSPEED + SQRT(accel*accel*(SHIP:GROUNDSPEED*SHIP:GROUNDSPEED + SHIP:VERTICALSPEED*SHIP:VERTICALSPEED)).
+    // set atanx to -accel*SHIP:VERTICALSPEED.
     
     set theta_optimal to 2*arctan2(atany, atanx). // angle above the x axis to point the ship
     // notes: theta will be in degrees. "x axis" is defined as the axis in the plane of the "up" vector and the ship's surface velocity vector with no vertical component, where the ship's x component of surface velocity is negative
@@ -39,10 +39,10 @@ until SHIP:VERTICALSPEED >= -0.01 and SHIP:VELOCITY:SURFACE:MAG < 1 {
     set throt_speed to SHIP:VELOCITY:SURFACE:MAG - touchdownv. // makes sure ship maintains a speed above touchdownv
     set throt_alt to -desired_vy - SHIP:VERTICALSPEED. // makes sure ship decelerates as it decends. This is the main throttle limiter
 
-    // if throt_alt > 1, increase angle so that
+    // if throt_alt > 1, increase angle so that landing is possible
     set num to SHIP:VERTICALSPEED*SHIP:VERTICALSPEED/(2*max(1, p_altitude - 10)) + g.
     set theta_emergency to arcsin(min(1, num/max(0.1, accel))).
-    if throt_alt > 10 {
+    if throt_alt > 1 {
       set theta to min(max(theta_emergency, theta_optimal), 90).
     } else {
       set theta to theta_optimal.
@@ -71,7 +71,7 @@ until SHIP:VERTICALSPEED >= -0.01 and SHIP:VELOCITY:SURFACE:MAG < 1 {
     print "a: " + accel at (0, 22).
     print "p_altitude: " + p_altitude at (0, 23).
     print "throttle: " + throt_actual at (0, 24).
-    print "y: " + atany at (0, 25).
+    print "asin num: " + num at (0, 25).
     print "x: " + atanx at (0, 26).
     print "theta: " + theta_optimal at (0, 27).
     print "time: " + t at (0, 28).
