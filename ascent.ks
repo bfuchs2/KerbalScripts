@@ -6,7 +6,7 @@ print "launch guidance engaged".
 
 until APOAPSIS > des_ap {
 	set pitch to 90 * (1 - SHIP:OBT:APOAPSIS / des_ap).
-	set ap_throttle to (des_ap - SHIP:OBT:APOAPSIS) / 100.  // throttle vessel as ap approaches dev_ap, to attenuate apoapsis overshoot
+	set ap_throttle to max(0.01, (des_ap - SHIP:OBT:APOAPSIS) / 100).  // throttle vessel as ap approaches dev_ap, to attenuate apoapsis overshoot
 	set R to ALTITUDE + SHIP:BODY:RADIUS.
 	set weight to SHIP:MASS * SHIP:BODY:MU / (R*R).
 
