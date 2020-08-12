@@ -40,8 +40,8 @@ until SHIP:VERTICALSPEED >= -0.01 and SHIP:VELOCITY:SURFACE:MAG < 1 {
     set throt_alt to -desired_vy - SHIP:VERTICALSPEED. // makes sure ship decelerates as it decends. This is the main throttle limiter
 
     // if throt_alt > 1, increase angle so that landing is possible
-    set num to SHIP:VERTICALSPEED*SHIP:VERTICALSPEED/(2*max(1, p_altitude - 10)) + g.
-    set theta_emergency to arcsin(min(1, num/max(0.1, accel))).
+    set num to SHIP:VERTICALSPEED*SHIP:VERTICALSPEED/(2*max(1, p_altitude - 10)) + g - (SHIP:ALTITUDE + SHIP:BODY:RADIUS)/(SHIP:GROUNDSPEED * SHIP:GROUNDSPEED).
+    set theta_emergency to arcsin(min(1, num/max(0.00001, accel))).
     if throt_alt > 1 {
       set theta to min(max(theta_emergency, theta_optimal), 90).
     } else {
