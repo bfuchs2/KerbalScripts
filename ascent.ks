@@ -11,21 +11,12 @@ until APOAPSIS > des_ap {
 	set weight to SHIP:MASS * SHIP:BODY:MU / (R*R).
 
 	// conversion from metric tons (SHIP:MASS) to kg, cancels out with conversion from KPa (sea level pressure) to Pa
-	set coef to (2 * CONSTANT:IdealGas * max(100, SHIP:BODY:ATM:ALTITUDETEMPERATURE(ALTITUDE)) * SHIP:MASS * SHIP:BODY:MU) / (5 * SHIP:BODY:ATM:MolarMass * SHIP:BODY:ATM:SeaLevelPressure * CONSTANT:AtmToKPa).  // coefficient used for calculating optimal speed and acceleration
+	set coef to (2 * CONSTANT:IdealGas * max(100, SHIP:BODY:ATM:ALTITUDETEMPERATURE(ALTITUDE)) * SHIP:MASS * SHIP:BODY:MU) / (200 * SHIP:BODY:ATM:MolarMass * CONSTANT:AtmToKPa).  // coefficient used for calculating optimal speed and acceleration
 	// TODO: replace SHIP:BODY:ATM:Scale with calculated scale height, or use KOS's builtin pressure function and approximate derivative
-	set scale to 10000.
-	set exp to CONSTANT:E ^ (ALTITUDE / scale). // e^alt/H, dimensionless pressure drop off
 	// vopt is the velocity at which drag force is equal to the force of gravity on the ship
-	set vopt to SQRT((coef * exp) / (R * R)).
+	set vopt to SQRT(coef / (max(0.0001, SHIP:BODY:ATM:ALTITUDEPRESSURE(ALTITUDE)) * R * R)).
 
-	// formula for optimal acceleration @ optimal velocity; only useful for telemetry as acceleration can be feathered
-	set aopt to 0.5 / SQRT(coef * exp / (R * R)) * coef * (-2 / R + 1 / scale ) * exp * SHIP:VERTICALSPEED / (R * R).
-	if SHIP:AIRSPEED > vopt {
-	  	set drag_throttle to SHIP:MASS * aopt / max(SHIP:AVAILABLETHRUST, 0.1).
-	} ELSE {
-	   set drag_throttle to 1.
-	}
-	// set drag_throttle to vopt - SHIP:AIRSPEED.
+	set drag_throttle to vopt - SHIP:AIRSPEED.
 
 	print "Ap: " + APOAPSIS at (0, 19).
 	print "ap_throttle " + ap_throttle at (0, 20).
