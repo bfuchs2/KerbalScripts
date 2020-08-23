@@ -7,6 +7,9 @@ print "landing at " + touchdownv + " m/s".
 print "initiating powered decent".
 set startv to  SHIP:VELOCITY:SURFACE:MAG.
 set startalt to ALT:RADAR.
+set old_alt to ALT:RADAR.
+set old_seconds to TIME:SECONDS.
+
 until (p_vertvel >= -0.01 AND SHIP:VELOCITY:SURFACE:MAG < 1 AND p_altitude < 10) or ABORT {
   
   // estimate terrain height
