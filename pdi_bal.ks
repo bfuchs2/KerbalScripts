@@ -55,7 +55,7 @@ until (SHIP:VERTICALSPEED >= -0.01 and SHIP:VELOCITY:SURFACE:MAG < 1) or ABORT {
       set theta_emergency to theta_emergency + 360.
     }
     set theta_emergency to mod(theta_emergency, 360).
-    set theta_optimal to max(theta_emergency, theta_optimal).
+    set theta to max(theta_emergency, theta_optimal).
     
     // "x axis" is defined as the axis in the plane of the "up" vector and the ship's surface velocity vector, where the ship's x component of surface velocity is negative
     // in other words, "x axis" is a unit vector in the oposite direction of the ship's "ground" velocity
@@ -67,16 +67,17 @@ until (SHIP:VERTICALSPEED >= -0.01 and SHIP:VELOCITY:SURFACE:MAG < 1) or ABORT {
       lock steeting to UP.
     } else {
       set xaxis to VCRS(yaxis, zaxis):NORMALIZED. // unit vector in the x direction (against ground velocity)
-      set desired_steering to xaxis*cos(theta_optimal) + yaxis*sin(theta_optimal).
+      set desired_steering to xaxis*cos(theta) + yaxis*sin(theta).
       lock steering to desired_steering.
     }
     
     // there are multiple throttle limiters
     set throt_speed to SHIP:VELOCITY:SURFACE:MAG - touchdownv. // makes sure ship maintains a speed above touchdownv
     set throt_alt to -desired_vy - SHIP:VERTICALSPEED. // makes sure ship decelerates as it decends. This is the main throttle limiter
+    set throt_em to theta_emergency - theta_optimal.  // if emergency theta is substantially higher than the optimal theta, slow down
     set throt_vert to -SHIP:VERTICALSPEED. // only engage engines while ship is actually descending
-    set throt_angle to SHIP:FACING:FOREVECTOR * desired_steering. // only throttles engines when the ship is facing the right direction
-    set throt_actual to min(throt_vert * throt_angle, min(throt_speed * throt_angle, throt_alt * throt_angle)).
+    set throt_angle to max(0, SHIP:FACING:FOREVECTOR * desired_steering). // only throttles engines when the ship is facing the right direction
+    set throt_actual to throt_angle * min(throt_vert, min(throt_speed, max(throt_em, throt_alt))).
     lock throttle to min(max(throt_actual, 0), 1).
     
     // print telemetry

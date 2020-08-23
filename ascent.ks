@@ -11,7 +11,7 @@ until APOAPSIS > des_ap {
 	set weight to SHIP:MASS * SHIP:BODY:MU / (R*R).
 
 	// conversion from metric tons (SHIP:MASS) to kg, cancels out with conversion from KPa (sea level pressure) to Pa
-	set coef to (2 * CONSTANT:IdealGas * max(100, SHIP:BODY:ATM:ALTITUDETEMPERATURE(ALTITUDE)) * SHIP:MASS * SHIP:BODY:MU) / (200 * SHIP:BODY:ATM:MolarMass * CONSTANT:AtmToKPa).  // coefficient used for calculating optimal speed and acceleration
+	set coef to (2 * CONSTANT:IdealGas * max(100, SHIP:BODY:ATM:ALTITUDETEMPERATURE(ALTITUDE)) * SHIP:MASS * SHIP:BODY:MU) / (100 * SHIP:BODY:ATM:MolarMass * CONSTANT:AtmToKPa).  // coefficient used for calculating optimal speed and acceleration
 	// TODO: replace SHIP:BODY:ATM:Scale with calculated scale height, or use KOS's builtin pressure function and approximate derivative
 	// vopt is the velocity at which drag force is equal to the force of gravity on the ship
 	set vopt to SQRT(coef / (max(0.0001, SHIP:BODY:ATM:ALTITUDEPRESSURE(ALTITUDE)) * R * R)).
