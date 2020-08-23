@@ -9,6 +9,7 @@ set startv to  SHIP:VELOCITY:SURFACE:MAG.
 set startalt to ALT:RADAR.
 set old_alt to ALT:RADAR.
 set old_seconds to TIME:SECONDS.
+set p_vertvel to SHIP:VERTICALSPEED.
 
 until (p_vertvel >= -0.01 AND SHIP:VELOCITY:SURFACE:MAG < 1 AND p_altitude < 10) or ABORT {
   
@@ -21,7 +22,9 @@ until (p_vertvel >= -0.01 AND SHIP:VELOCITY:SURFACE:MAG < 1 AND p_altitude < 10)
   set accel to max(0.0001, SHIP:AVAILABLETHRUST)/SHIP:MASS.
   
   // estimate vertical speed based on radar point differential
-  set vert_est to (p_altitude - old_alt)/(TIME:SECONDS - old_seconds).
+  wait until TIME:SECONDS - old_seconds > 0.
+  set new_seconds to TIME:SECONDS.
+  set vert_est to (p_altitude - old_alt)/(new_seconds - old_seconds).
   set old_alt to p_altitude.
   set old_seconds to TIME:SECONDS.
   set p_vertvel to MIN(vert_est, SHIP:VERTICALSPEED).
@@ -92,7 +95,7 @@ until (p_vertvel >= -0.01 AND SHIP:VELOCITY:SURFACE:MAG < 1 AND p_altitude < 10)
     
 	// control landing gear and RCS
 	set GEAR to p_altitude < 1000.
-	set RCS to throt_actual > -2 AND (throt_angle < 0.995 OR SHIP:ANGULARVELOCITY:MAG > 0.06).
+	set RCS to throt_actual > -2 AND (throt_angle < 0.995 OR SHIP:ANGULARVEL:MAG > 0.06).
 	
     // print telemetry
     print "g: " + g at (0, 21).
