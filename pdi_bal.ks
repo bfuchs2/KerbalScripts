@@ -1,7 +1,7 @@
 // balanced landing autopilot that increases efficiency while sacrificing little safety
 // parameter maxHeight
 
-set touchdownv to 0.8.
+set touchdownv to 1.
 clearscreen.
 print "landing at " + touchdownv + " m/s".
 
@@ -11,8 +11,8 @@ set startalt to ALT:RADAR.
 set old_alt to ALT:RADAR.
 set old_seconds to TIME:SECONDS.
 set p_vertvel to SHIP:VERTICALSPEED.
-
 until (p_vertvel >= -0.01 AND SHIP:VELOCITY:SURFACE:MAG < 1 AND p_altitude < 10) or ABORT {
+  wait until TIME:SECONDS - old_seconds > 0.
   
   // estimate terrain height
   set p_altitude to ALT:RADAR.
@@ -23,18 +23,14 @@ until (p_vertvel >= -0.01 AND SHIP:VELOCITY:SURFACE:MAG < 1 AND p_altitude < 10)
   set accel to max(0.0001, SHIP:AVAILABLETHRUST)/SHIP:MASS.
   
   // estimate vertical speed based on radar point differential, but only if groundspeed higher than vertical speed
-  if SHIP:GROUNDSPEED > ABS(SHIP:VERTICALSPEED) {
-    wait until TIME:SECONDS - old_seconds > 0.
-    set new_seconds to TIME:SECONDS.
-    set vert_est to (p_altitude - old_alt)/(new_seconds - old_seconds).
-    set old_alt to p_altitude.
-    set old_seconds to TIME:SECONDS.
-    set p_vertvel to MIN(vert_est, SHIP:VERTICALSPEED).
-  } else {
-    set p_vertvel to SHIP:VERTICALSPEED.
-  }
+
+  set dt to TIME:SECONDS - old_seconds.
+  set old_seconds to TIME:SECONDS.
+  set vert_est to (p_altitude - old_alt)/dt.
+  set old_alt to p_altitude.
+  set p_vertvel to MIN(vert_est, SHIP:VERTICALSPEED).
   
-  if accel > g {
+  if accel > g_adj {
 
     // copy in formulaes for theta and t
     set root to SQRT(accel*accel*(SHIP:GROUNDSPEED*SHIP:GROUNDSPEED + p_vertvel*p_vertvel) - g_adj*g_adj*SHIP:GROUNDSPEED*SHIP:GROUNDSPEED).
@@ -78,11 +74,10 @@ until (p_vertvel >= -0.01 AND SHIP:VELOCITY:SURFACE:MAG < 1 AND p_altitude < 10)
       set theta_emergency to theta_emergency + 360.
     }
     set theta_emergency to mod(theta_emergency, 360).
-    if SHIP:GROUNDSPEED > ABS(SHIP:VERTICALSPEED) {
-      set theta to max(theta_emergency, theta_optimal).
-    } else {
-      set theta to theta_nog.
+    if SHIP:GROUNDSPEED < ABS(SHIP:VERTICALSPEED) {
+      set theta_emergency to theta_optimal. 
     }
+	set theta to max(theta_emergency, theta_optimal).
     
     // "x axis" is defined as the axis in the plane of the "up" vector and the ship's surface velocity vector, where the ship's x component of surface velocity is negative
     // in other words, "x axis" is a unit vector in the oposite direction of the ship's "ground" velocity
@@ -101,15 +96,15 @@ until (p_vertvel >= -0.01 AND SHIP:VELOCITY:SURFACE:MAG < 1 AND p_altitude < 10)
     }
     
     // there are multiple throttle limiters
-    set throt_speed to SHIP:VELOCITY:SURFACE:MAG - touchdownv. // makes sure ship maintains a speed above touchdownv
-    set throt_alt to -desired_vy - p_vertvel. // makes sure ship decelerates as it decends. This is the main throttle limiter
+    set dv_alt to -desired_vy - p_vertvel. 
+	set throt_alt to (dv_alt/dt + g_adj)/(accel * sin(theta)). // makes sure ship maintains desired vertical velocity as it decends. This is the main throttle limiter.
     set throt_em to theta_emergency - theta_optimal.  // if emergency theta is substantially higher than the optimal theta, slow down
     set throt_vert to -p_vertvel. // only engage engines while ship is actually descending
-    set throt_angle to min(1, max(0, 0.5 + SHIP:FACING:FOREVECTOR * desired_steering)). // only throttles engines when the ship is facing the right direction
+    set throt_angle to min(1, max(0, 0.2 + SHIP:FACING:FOREVECTOR * desired_steering)). // only throttles engines when the ship is facing the right direction
     if desired_vy = touchdownv AND p_vertvel < 0 { // at low altitudes, when we're targeting touchdown v, ignore emergency throttle
-      set throt_actual to min(throt_speed, min(throt_alt, 2*g/accel)).
+      set throt_actual to min(throt_vert, throt_alt).
     } else {
-      set throt_actual to throt_angle * min(throt_vert, min(throt_speed, max(throt_em, throt_alt))).
+      set throt_actual to throt_angle * min(throt_vert, max(throt_em, throt_alt)).
     }
     lock throttle to min(max(throt_actual, 0), 1).
     
@@ -118,7 +113,6 @@ until (p_vertvel >= -0.01 AND SHIP:VELOCITY:SURFACE:MAG < 1 AND p_altitude < 10)
 	set RCS to p_altitude < maxHeight AND throt_actual > -1 AND (throt_angle < 0.8 OR SHIP:ANGULARVEL:MAG > 0.2).
 	
     // print telemetry
-    print "g: " + g at (0, 21).
     print "a: " + accel at (0, 22).
     print "p_altitude: " + p_altitude at (0, 23).
     print "throttle: " + throt_actual at (0, 24).
