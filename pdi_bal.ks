@@ -1,7 +1,8 @@
 // balanced landing autopilot that increases efficiency while sacrificing little safety
 // parameter maxHeight
 
-set touchdownv to 1.
+set touchdownv to 2.5.
+clearscreen.
 print "landing at " + touchdownv + " m/s".
 
 print "initiating powered decent".
@@ -21,13 +22,17 @@ until (p_vertvel >= -0.01 AND SHIP:VELOCITY:SURFACE:MAG < 1 AND p_altitude < 10)
   set g_adj to g - (SHIP:GROUNDSPEED * SHIP:GROUNDSPEED)/(SHIP:ALTITUDE + SHIP:BODY:RADIUS).  // gravity adjusted for centipetal force
   set accel to max(0.0001, SHIP:AVAILABLETHRUST)/SHIP:MASS.
   
-  // estimate vertical speed based on radar point differential
-  wait until TIME:SECONDS - old_seconds > 0.
-  set new_seconds to TIME:SECONDS.
-  set vert_est to (p_altitude - old_alt)/(new_seconds - old_seconds).
-  set old_alt to p_altitude.
-  set old_seconds to TIME:SECONDS.
-  set p_vertvel to MIN(vert_est, SHIP:VERTICALSPEED).
+  // estimate vertical speed based on radar point differential, but only if groundspeed higher than vertical speed
+  if SHIP:GROUNDSPEED > ABS(SHIP:VERTICALSPEED) {
+    wait until TIME:SECONDS - old_seconds > 0.
+    set new_seconds to TIME:SECONDS.
+    set vert_est to (p_altitude - old_alt)/(new_seconds - old_seconds).
+    set old_alt to p_altitude.
+    set old_seconds to TIME:SECONDS.
+    set p_vertvel to MIN(vert_est, SHIP:VERTICALSPEED).
+  } else {
+    set p_vertvel to SHIP:VERTICALSPEED.
+  }
   
   if accel > g {
 
@@ -57,10 +62,15 @@ until (p_vertvel >= -0.01 AND SHIP:VELOCITY:SURFACE:MAG < 1 AND p_altitude < 10)
     
     // interpolate between theta_g and theta_nog depending on fraction of height below maxHeight
     set interp to max(0, min(1, p_altitude/maxHeight)).
-    set theta_optimal to theta_g*interp + theta_nog*(1-interp). // angle above the x axis to point the ship
+    // set theta_optimal to theta_g*interp + theta_nog*(1-interp). // angle above the x axis to point the ship
+    if p_altitude > maxHeight {
+      set theta_optimal to theta_g.
+    } else {
+      set theta_optimal to theta_nog.
+    }
     // notes: theta will be in degrees.
     
-    set desired_vy to max(SQRT(2*max(0, p_altitude - 10)*(max(0, accel*sin(theta_optimal) - g_adj))), touchdownv). // the maximum vertical velocity that can be cancelled out at current altitude and thrust capacity at the current angle
+    set desired_vy to max(SQRT(2*max(0, p_altitude)*(max(0, accel*sin(theta_optimal) - g_adj))), touchdownv). // the maximum vertical velocity that can be cancelled out at current altitude and thrust capacity at the current angle
     
     set num to p_vertvel*p_vertvel/(2*max(1, p_altitude - SHIP:VELOCITY:SURFACE:MAG)) + g_adj.
     set theta_emergency to arcsin(max(0, min(1, num/max(0.00001, accel)))).  // minimum angle that will allow the craft to lose its velocity before impact
@@ -68,7 +78,11 @@ until (p_vertvel >= -0.01 AND SHIP:VELOCITY:SURFACE:MAG < 1 AND p_altitude < 10)
       set theta_emergency to theta_emergency + 360.
     }
     set theta_emergency to mod(theta_emergency, 360).
-    set theta to max(theta_emergency, theta_optimal).
+    if SHIP:GROUNDSPEED > ABS(SHIP:VERTICALSPEED) {
+      set theta to max(theta_emergency, theta_optimal).
+    } else {
+      set theta to theta_nog.
+    }
     
     // "x axis" is defined as the axis in the plane of the "up" vector and the ship's surface velocity vector, where the ship's x component of surface velocity is negative
     // in other words, "x axis" is a unit vector in the oposite direction of the ship's "ground" velocity
@@ -95,7 +109,7 @@ until (p_vertvel >= -0.01 AND SHIP:VELOCITY:SURFACE:MAG < 1 AND p_altitude < 10)
     
 	// control landing gear and RCS
 	set GEAR to p_altitude < 1000.
-	set RCS to throt_actual > -2 AND (throt_angle < 0.995 OR SHIP:ANGULARVEL:MAG > 0.06).
+	set RCS to p_altitude < 1000 AND throt_actual > -1 AND (throt_angle < 0.8 OR SHIP:ANGULARVEL:MAG > 0.2).
 	
     // print telemetry
     print "g: " + g at (0, 21).
@@ -121,7 +135,10 @@ if ABORT {
 } else {
   print "touchdown!".
   lock steering to UP.
-  set shutdown to TIME:SECONDS + 10.
+  set rcsoff to TIME:SECONDS + 1.
+  wait until TIME:SECONDS > rcsoff.
+  set RCS to FALSE.
+  set shutdown to TIME:SECONDS + 9.
   lock throttle to 0.
   wait until TIME:SECONDS > shutdown.
   print "program ended".
