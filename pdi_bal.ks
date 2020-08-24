@@ -1,7 +1,7 @@
 // balanced landing autopilot that increases efficiency while sacrificing little safety
 // parameter maxHeight
 
-set touchdownv to 2.5.
+set touchdownv to 0.8.
 clearscreen.
 print "landing at " + touchdownv + " m/s".
 
@@ -70,7 +70,7 @@ until (p_vertvel >= -0.01 AND SHIP:VELOCITY:SURFACE:MAG < 1 AND p_altitude < 10)
     }
     // notes: theta will be in degrees.
     
-    set desired_vy to max(SQRT(2*max(0, p_altitude)*(max(0, accel*sin(theta_optimal) - g_adj))), touchdownv). // the maximum vertical velocity that can be cancelled out at current altitude and thrust capacity at the current angle
+    set desired_vy to max(SQRT(2*max(0, p_altitude - 10)*(max(0, accel*sin(theta_optimal) - g_adj))), touchdownv). // the maximum vertical velocity that can be cancelled out at current altitude and thrust capacity at the current angle
     
     set num to p_vertvel*p_vertvel/(2*max(1, p_altitude - SHIP:VELOCITY:SURFACE:MAG)) + g_adj.
     set theta_emergency to arcsin(max(0, min(1, num/max(0.00001, accel)))).  // minimum angle that will allow the craft to lose its velocity before impact
@@ -90,7 +90,9 @@ until (p_vertvel >= -0.01 AND SHIP:VELOCITY:SURFACE:MAG < 1 AND p_altitude < 10)
     set yaxis to (SHIP:POSITION - SHIP:BODY:POSITION):NORMALIZED. // unit vector pointing straight away from the body's surface
     set zaxis to VCRS(yaxis, SHIP:VELOCITY:SURFACE):NORMALIZED. // normal vector, up cross velocity
     set desired_steering to yaxis.
-    if zaxis:MAG = 0 {
+    if desired_vy = touchdownv {
+      lock steering to -SHIP:VELOCITY:SURFACE.
+    } else if zaxis:MAG = 0 {
       lock steeting to UP.
     } else {
       set xaxis to VCRS(yaxis, zaxis):NORMALIZED. // unit vector in the x direction (against ground velocity)
@@ -103,13 +105,17 @@ until (p_vertvel >= -0.01 AND SHIP:VELOCITY:SURFACE:MAG < 1 AND p_altitude < 10)
     set throt_alt to -desired_vy - p_vertvel. // makes sure ship decelerates as it decends. This is the main throttle limiter
     set throt_em to theta_emergency - theta_optimal.  // if emergency theta is substantially higher than the optimal theta, slow down
     set throt_vert to -p_vertvel. // only engage engines while ship is actually descending
-    set throt_angle to max(0, SHIP:FACING:FOREVECTOR * desired_steering). // only throttles engines when the ship is facing the right direction
-    set throt_actual to throt_angle * min(throt_vert, min(throt_speed, max(throt_em, throt_alt))).
+    set throt_angle to min(1, max(0, 0.5 + SHIP:FACING:FOREVECTOR * desired_steering)). // only throttles engines when the ship is facing the right direction
+    if desired_vy = touchdownv AND p_vertvel < 0 { // at low altitudes, when we're targeting touchdown v, ignore emergency throttle
+      set throt_actual to min(throt_speed, min(throt_alt, 2*g/accel)).
+    } else {
+      set throt_actual to throt_angle * min(throt_vert, min(throt_speed, max(throt_em, throt_alt))).
+    }
     lock throttle to min(max(throt_actual, 0), 1).
     
 	// control landing gear and RCS
 	set GEAR to p_altitude < 1000.
-	set RCS to p_altitude < 1000 AND throt_actual > -1 AND (throt_angle < 0.8 OR SHIP:ANGULARVEL:MAG > 0.2).
+	set RCS to p_altitude < maxHeight AND throt_actual > -1 AND (throt_angle < 0.8 OR SHIP:ANGULARVEL:MAG > 0.2).
 	
     // print telemetry
     print "g: " + g at (0, 21).
@@ -117,14 +123,15 @@ until (p_vertvel >= -0.01 AND SHIP:VELOCITY:SURFACE:MAG < 1 AND p_altitude < 10)
     print "p_altitude: " + p_altitude at (0, 23).
     print "throttle: " + throt_actual at (0, 24).
     print "g_adj: " + g_adj at (0, 25).
+    print "angle: " + throt_angle at (0, 26).
     print "desired vy: " + desired_vy + " " at (0, 27).
     print "actual vy: " + p_vertvel at (0, 28).
     print "terrain: " + terrain at (0, 29).
     print "theta: " + theta_optimal + " " at (0, 30).
-    print "theta_g: " + theta_g at (0, 31).
-    print "theta_nog: " + theta_nog at (0, 32).
     print "theta_em: " + theta_emergency + " " at (0, 33).
   } else {
+    lock steering to UP.
+    lock throttle to 1.
     print "Not enough thrust! Abort!" at (0, 21).
   }
 }
