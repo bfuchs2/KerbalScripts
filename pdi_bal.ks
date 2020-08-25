@@ -1,7 +1,7 @@
 // balanced landing autopilot that increases efficiency while sacrificing little safety
 // parameter maxHeight
 
-set touchdownv to 1.
+set touchdownv to 4.
 clearscreen.
 print "landing at " + touchdownv + " m/s".
 
@@ -29,6 +29,7 @@ until (p_vertvel >= -0.01 AND SHIP:VELOCITY:SURFACE:MAG < 1 AND p_altitude < 10)
   set vert_est to (p_altitude - old_alt)/dt.
   set old_alt to p_altitude.
   set p_vertvel to MIN(vert_est, SHIP:VERTICALSPEED).
+  set p_vertvel to SHIP:VERTICALSPEED.
   
   if accel > g_adj {
 
@@ -85,10 +86,12 @@ until (p_vertvel >= -0.01 AND SHIP:VELOCITY:SURFACE:MAG < 1 AND p_altitude < 10)
     set yaxis to (SHIP:POSITION - SHIP:BODY:POSITION):NORMALIZED. // unit vector pointing straight away from the body's surface
     set zaxis to VCRS(yaxis, SHIP:VELOCITY:SURFACE):NORMALIZED. // normal vector, up cross velocity
     set desired_steering to yaxis.
-    if desired_vy = touchdownv {
+    if p_vertvel > 0 {
+      lock steering to UP.
+    } else if desired_vy = touchdownv {
       lock steering to -SHIP:VELOCITY:SURFACE.
     } else if zaxis:MAG = 0 {
-      lock steeting to UP.
+      lock steering to UP.
     } else {
       set xaxis to VCRS(yaxis, zaxis):NORMALIZED. // unit vector in the x direction (against ground velocity)
       set desired_steering to xaxis*cos(theta) + yaxis*sin(theta).
@@ -97,7 +100,7 @@ until (p_vertvel >= -0.01 AND SHIP:VELOCITY:SURFACE:MAG < 1 AND p_altitude < 10)
     
     // there are multiple throttle limiters
     set dv_alt to -desired_vy - p_vertvel. 
-	set throt_alt to (dv_alt/dt + g_adj)/(accel * sin(theta)). // makes sure ship maintains desired vertical velocity as it decends. This is the main throttle limiter.
+    set throt_alt to (dv_alt/dt + g_adj)/(2*accel). // makes sure ship maintains desired vertical velocity as it decends. This is the main throttle limiter.
     set throt_em to theta_emergency - theta_optimal.  // if emergency theta is substantially higher than the optimal theta, slow down
     set throt_vert to -p_vertvel. // only engage engines while ship is actually descending
     set throt_angle to min(1, max(0, 0.2 + SHIP:FACING:FOREVECTOR * desired_steering)). // only throttles engines when the ship is facing the right direction
