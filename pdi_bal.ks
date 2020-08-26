@@ -29,7 +29,6 @@ until (p_vertvel >= -0.01 AND SHIP:VELOCITY:SURFACE:MAG < 1 AND p_altitude < 10)
   set vert_est to (p_altitude - old_alt)/dt.
   set old_alt to p_altitude.
   set p_vertvel to MIN(vert_est, SHIP:VERTICALSPEED).
-  set p_vertvel to SHIP:VERTICALSPEED.
   
   if accel > g_adj {
 
