@@ -87,7 +87,7 @@ until (p_vertvel >= -0.01 AND SHIP:VELOCITY:SURFACE:MAG < 1 AND p_altitude < 10)
     set desired_steering to yaxis.
     if p_vertvel > 0 {
       lock steering to UP.
-    } else if desired_vy = touchdownv {
+    } else if desired_vy = touchdownv AND throt_alt < 1.2 {
       lock steering to -SHIP:VELOCITY:SURFACE.
     } else if zaxis:MAG = 0 {
       lock steering to UP.
@@ -100,7 +100,7 @@ until (p_vertvel >= -0.01 AND SHIP:VELOCITY:SURFACE:MAG < 1 AND p_altitude < 10)
     // there are multiple throttle limiters
     set dv_alt to -desired_vy - p_vertvel. 
     set throt_alt to (dv_alt/dt + g_adj)/(2*accel). // makes sure ship maintains desired vertical velocity as it decends. This is the main throttle limiter.
-    set throt_em to theta_emergency - theta_optimal.  // if emergency theta is substantially higher than the optimal theta, slow down
+    set throt_em to theta_emergency - theta_g.  // if emergency theta is substantially higher than the theta with gravity, slow down
     set throt_vert to -p_vertvel. // only engage engines while ship is actually descending
     set throt_angle to min(1, max(0, 0.2 + SHIP:FACING:FOREVECTOR * desired_steering)). // only throttles engines when the ship is facing the right direction
     if desired_vy = touchdownv AND p_vertvel < 0 { // at low altitudes, when we're targeting touchdown v, ignore emergency throttle
