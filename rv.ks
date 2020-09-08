@@ -1,7 +1,13 @@
+// rendez-vous autopilot that attempts to bring the current ship within 70 meters of its target
+// and no mutual velocity. This program assumes the current craft is already on a transfer
+// trajectory towards the target.
+
 clearscreen.
-set target_distance to 50. // distance (in meters) to get the two crafts within
+set target_distance to 70. // distance (in meters) to get the two crafts within
 set x to V(100, 100, 100).
+set none to V(0, 0, 0).
 set tmax to SHIP:ORBIT:PERIOD / 5.
+set tmin to 1.
 set max_rel_v to 0.01. // relative velocity (in m/s) to get the two crafts within
 set firing to FALSE. // whether or not the engines are active
 if NOT HASTARGET {
@@ -24,41 +30,36 @@ if NOT HASTARGET {
     
     // binary search to find optimal time to approach
     set tmax to tmax * 2.
-    set tmin to 1.
+    set tmin to tmin/2.
     set v_min to V(20, 20, 20).
     set v_max to V(10, 0, 0).
-    until (tmax - tmin) < 10 {
+    until (tmax - tmin) < 1 {
       set tmid to (tmax + tmin) / 2.
-      set t1 to tmid + 1.
       
       // find velocity and velocity detivative at this time-target
       set dv to  -(x + 0.5*g*tmid*tmid)/tmid - v.
-      set dv_1 to -(x + 0.5*g*t1*t1)/t1 - v.
       set v_min to -(x + 0.5*g*tmax*tmax)/tmax.
       set v_max to -(x + 0.5*g*tmin*tmin)/tmin.
       
-      // multipliers used to calculate velocity derivative
-      // set dv_mult1 to -2*(x - 0.5*g*tmid*tmid)/tmid - v.
-      // set dv_mult2 to x/(tmid*tmid) + 0.5*g.
-      // set dv_mult3 to g*tmid.
-      // set velocity_derivative to 0.5 / dv:mag * (dv_mult1:x*dv_mult2:x*dv_mult3:x + dv_mult1:y*dv_mult2:y*dv_mult3:y + dv_mult1:z*dv_mult2:z*dv_mult3:z).
+      set dv_derivative to g/2 - x/(tmid*tmid).
+      set dv_magnitude_derivative to dv_derivative * dv / dv:MAG.
       
-      
-      if v_min:MAG < min_rvel {
-        set tmax to tmid.
-      } else if v_max:MAG > allowed_rvel {
+      if v_max:MAG > allowed_rvel {
         set tmin to tmid.
-      } else if dv_1:MAG < dv:MAG {
+      } else if v_min:MAG < min_rvel {
+        set tmax to tmid.
+      } else if dv_magnitude_derivative > 0 {
         set tmin to tmid.
       } else {
         set tmax to tmid.
       }
-    } // the optimal velocity change is "velocity"
+    } // the optimal velocity change is "dv"
     
-    lock steering to dv.
+    set des_steering to dv:NORMALIZED.
+    lock steering to des_steering.
     set throt to 0.3 * dv:MAG/accel.
-    set v_ang to vang(dv, SHIP:FACING:FOREVECTOR).
-    if (v_ang < 7 AND dv:MAG > 2) OR (firing AND dv:MAG > 0.02) {
+    set v_ang to vang(des_steering, SHIP:FACING:FOREVECTOR).
+    if (dv:MAG > v_ang AND dv:MAG > 2) OR (firing AND dv:MAG > 0.07) {
       lock throttle to throt.
       set firing to TRUE.
     } else {
@@ -67,6 +68,10 @@ if NOT HASTARGET {
     }
     
     // print telemetry
+    set dv_arrow to VECDRAW(none, des_steering * 10, RGB(1,0,1), "dv", 1.0, TRUE, 0.2, TRUE, TRUE).
+    set x_arrow to VECDRAW(none, x:NORMALIZED * -10, RGB(1, 0.5, 0), "x", 1.0, TRUE, 0.2, TRUE, TRUE).
+    set v_arrow to VECDRAW(none, v, RGB(0.5, 1, 0.5), "v", 1.0, TRUE, 0.2, TRUE, TRUE).
+    
     print "distance: " + x:MAG at (0, 20).
     print "relative v: " + v:MAG at (0, 21).
     print "target time: " + tmid at (0, 22).

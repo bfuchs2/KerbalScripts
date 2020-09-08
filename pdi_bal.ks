@@ -76,10 +76,8 @@ until (p_vertvel >= -0.01 AND SHIP:VELOCITY:SURFACE:MAG < 1 AND p_altitude < 10)
       set theta_emergency to theta_emergency + 360.
     }
     set theta_emergency to mod(theta_emergency, 360).
-    if SHIP:GROUNDSPEED < ABS(SHIP:VERTICALSPEED) {
-      set theta_emergency to theta_optimal. 
-    }
-	set theta to max(theta_emergency, theta_optimal).
+
+  	set theta to max(theta_emergency, theta_optimal).
     
     // "x axis" is defined as the axis in the plane of the "up" vector and the ship's surface velocity vector, where the ship's x component of surface velocity is negative
     // in other words, "x axis" is a unit vector in the oposite direction of the ship's "ground" velocity
