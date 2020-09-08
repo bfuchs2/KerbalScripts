@@ -9,6 +9,7 @@ print "initiating powered decent".
 set startv to  SHIP:VELOCITY:SURFACE:MAG.
 set startalt to ALT:RADAR.
 set old_alt to ALT:RADAR.
+set throt_alt to 1.
 set old_seconds to TIME:SECONDS.
 set p_vertvel to SHIP:VERTICALSPEED.
 until (p_vertvel >= -0.01 AND SHIP:VELOCITY:SURFACE:MAG < 1 AND p_altitude < 10) or ABORT {
@@ -20,6 +21,7 @@ until (p_vertvel >= -0.01 AND SHIP:VELOCITY:SURFACE:MAG < 1 AND p_altitude < 10)
   set R to terrain + SHIP:BODY:RADIUS.
   set g to SHIP:BODY:MU / (R + p_altitude/3) ^ 2.
   set g_adj to g - (SHIP:GROUNDSPEED * SHIP:GROUNDSPEED)/(SHIP:ALTITUDE + SHIP:BODY:RADIUS).  // gravity adjusted for centipetal force
+  set touchdownv to g/2.
   set accel to max(0.0001, SHIP:AVAILABLETHRUST)/SHIP:MASS.
   
   // estimate vertical speed based on radar point differential, but only if groundspeed higher than vertical speed
